@@ -14,28 +14,6 @@ class DDPM:
         self.alphas = 1.0 - self.betas
         self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
         self.timesteps = torch.arange(num_train_timesteps - 1, -1, -1)
-    
-    def add_noise(
-        self,
-        original_samples: torch.Tensor,
-        noise: torch.Tensor,
-        timesteps: torch.Tensor,
-    ):
-        alphas_cumprod = self.alphas_cumprod.to(device=original_samples.device ,dtype=original_samples.dtype)
-        noise = noise.to(original_samples.device)
-        timesteps = timesteps.to(original_samples.device)
-
-        # \sqrt{\bar\alpha_t}
-        sqrt_alpha_prod = alphas_cumprod[timesteps].flatten() ** 0.5
-        while len(sqrt_alpha_prod.shape) < len(original_samples.shape):
-            sqrt_alpha_prod = sqrt_alpha_prod.unsqueeze(-1)
-        
-        # \sqrt{1 - \bar\alpha_t}
-        sqrt_one_minus_alpha_prod = (1.0 - alphas_cumprod[timesteps]).flatten() ** 0.5
-        while len(sqrt_one_minus_alpha_prod.shape) < len(original_samples.shape):
-            sqrt_one_minus_alpha_prod = sqrt_one_minus_alpha_prod.unsqueeze(-1)
-        
-        return sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
 
     @torch.no_grad()
     def sample(
@@ -62,7 +40,7 @@ class DDPM:
             mean = (images - one_minus_alpha_t / sqrt_one_minus_alpha_cumprod_t * pred_noise) / sqrt_alpha_t
             
             # variance of q(x_{t-1}|x_t)
-            if timestep > 1:
+            if timestep > 0:
                 beta_t = betas[timestep]
                 one_minus_alpha_cumprod_t_minus_one = 1.0 - alphas_cumprod[timestep - 1]
                 one_divided_by_sigma_square = alpha_t / beta_t + 1.0 / one_minus_alpha_cumprod_t_minus_one
